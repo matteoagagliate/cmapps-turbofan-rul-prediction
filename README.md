@@ -1,60 +1,128 @@
-# 🔧 Predictive Models on NASA Turbofan Engine Degradation Dataset  
+# 🔧 Predictive Models on NASA Turbofan Engine Degradation (C-MAPSS, FD004)
 
-This project evaluates a wide range of machine learning and deep learning models for the prediction of the **Remaining Useful Life (RUL)** of turbofan engines. The study is based on the **NASA C-MAPSS dataset**, a well-established benchmark in the prognostics community.  
-
----
-
-## 🛠 Project Overview  
-Our objective was to design, implement, and compare different predictive approaches within a unified, reproducible pipeline. As a reference point, we adopted **linear regression** as the baseline model, then extended the analysis to more sophisticated methods in order to assess how different architectures perform under the same experimental conditions.  
-
-The experiments focus on **FD004**, the most challenging C-MAPSS subset: it contains multiple operational conditions and two simultaneous fault modes (HPC degradation and fan degradation). This complexity makes FD004 an ideal testbed for evaluating both the robustness and accuracy of RUL prediction models.  
+This project benchmarks a wide set of machine learning and deep learning models for **Remaining Useful Life (RUL)** prediction using NASA’s **C-MAPSS dataset**. We focus on **FD004**, the most challenging subset with **six operating conditions** and **two simultaneous fault modes (HPC + Fan degradation)**. This scenario stresses both robustness and predictive accuracy.
 
 ---
 
-## 📂 Methodology & Pipeline  
-The system is implemented as a modular Python framework. The pipeline covers the entire process from raw sensor readings to final evaluation:  
-
-1. **Data processing & filtering** – noise reduction through Moving Average, Exponential Moving Average, or Savitzky–Golay filters.  
-2. **Feature engineering** – scaling (global or condition-specific), clipping of RUL values, lagged variables to encode temporal dependencies, and polynomial expansion to capture nonlinear interactions.  
-3. **Model training & evaluation** – each model is trained with consistent preprocessing and compared on common metrics.  
-4. **Evaluation metrics** – RMSE and R² are reported, together with a custom **Asymmetric MSE** that penalizes RUL overestimation more heavily to reflect the safety-critical nature of the task.  
-
-This design ensures that experiments are **reproducible and comparable** across all models.  
+## 🛠 Project Goals
+We designed a **reproducible, modular pipeline** that enables fair comparison of heterogeneous models under consistent preprocessing, training, and evaluation conditions.  
+- **Linear regression** was used as a baseline.  
+- Complexity was progressively increased (tree-based, feed-forward NN, recurrent NN, CNN) to test whether advanced architectures provide significant gains on FD004.  
 
 ---
 
-## 🤖 Implemented Models  
-Alongside the linear regression baseline, we explored a diverse set of algorithms, chosen to represent different levels of complexity and modeling power:  
+## 📂 Pipeline Overview
 
-- **Random Forest** and **XGBoost** to capture nonlinearities and interactions between sensors.  
-- **Multilayer Perceptron (MLP)** as a first step into neural models capable of modeling nonlinear mappings.  
-- **Recurrent architectures (LSTM, GRU)** to explicitly learn temporal dependencies in the sensor time series.  
-- **1D Convolutional Neural Network (CNN)** to extract local temporal patterns and correlations among sensors with efficient training.  
+1. **Data processing & filtering**  
+   - Noise reduction via **Moving Average**, **Exponential Moving Average (EMA)**, **Savitzky–Golay filter**.  
+   - Preserves local structure while denoising sensor streams.  
 
-The choice of models reflects the goal of **progressively testing whether more advanced architectures significantly outperform simple baselines** on FD004.  
+2. **Feature engineering**  
+   - Scaling: **global vs condition-specific** (the latter proved crucial for recurrent models).  
+   - **RUL clipping** to reduce label skew.  
+   - **Lagged features** to encode short-term dependencies for non-sequential models.  
+   - **Polynomial expansion** to capture nonlinear interactions.  
 
----
+3. **Model training**  
+   - Unified modular code (`DP`, `FE`, `MD`, `TN`, `UT`).  
+   - Random seed management for reproducibility.  
 
-## 🔍 Hyperparameter Tuning  
-Hyperparameters were optimized using **Random Search**, which offered a practical trade-off between exploration of the search space and computational cost. Separate searches were conducted for each model family, allowing fair comparisons of their best-performing configurations.  
-
----
-
-## 📊 Results & Insights  
-The experiments confirmed that the **linear regression baseline** provides fast and interpretable results, but struggles with the complex degradation dynamics of FD004.  
-- **Random Forest** and **XGBoost** offered clear improvements, especially in capturing nonlinear behaviors, though they plateaued in performance.  
-- **MLP** achieved stronger predictive accuracy than tree-based models but required careful regularization.  
-- **LSTM** and **GRU** delivered the **best results overall**, demonstrating their strength in modeling long-term temporal dependencies in noisy sensor data.  
-- **1D CNN** performed competitively, approaching recurrent models while offering faster training times, though it was slightly less accurate in the long-term RUL predictions.  
-
-In summary, **recurrent neural networks outperformed all other methods**, validating their suitability for complex prognostics tasks. At the same time, tree-based models and CNNs provided valuable trade-offs in terms of interpretability and efficiency.  
+4. **Evaluation metrics**  
+   - **RMSE**, **R²**, **Mean Error (ME)**.  
+   - A custom **Asymmetric MSE** (λ=2.0) penalizes **overestimation** more than underestimation — reflecting the safety-critical nature of prognostics.  
 
 ---
 
-## 👥 Authors  
+## 🤖 Implemented Models
 
-- Matteo Agagliate – [matteo.agagliate@studenti.polito.it](mailto:matteo.agagliate@studenti.polito.it) 
+- **Baselines**: Linear Regression, Polynomial Regression.  
+- **Ensemble trees**: Random Forest, XGBoost.  
+- **Neural networks**: Multilayer Perceptron (MLP).  
+- **Recurrent models**: LSTM, GRU (with different sequence lengths τ).  
+- **Convolutional model**: 1D CNN (kernel size ∈ {2,3,5}, pooling size ∈ {2,3}, τ ∈ {20,30,50}).  
+
+---
+
+## 🔍 Hyperparameter Tuning
+- **Random Search** for each family, balancing exploration vs computation.  
+- Best configurations were stored and reused.  
+- LSTM/GRU tuned on **sequence length** and **scaling**: condition-specific scaling reduced RMSE by ~18.7% vs global scaling.  
+- CNN tuning found τ ≈ 50 yielded the strongest performance.  
+- GRU converged faster (≈ 2/3 of LSTM training time) but with slightly worse accuracy.  
+
+---
+
+## 📊 Results on FD004
+
+Performance summary (Train / **Test** / CV).  
+Metrics: **RMSE ↓**, **R² ↑**, **ME** (positive = overestimation, negative = underestimation).  
+
+| Model | Split | RMSE | R² | ME |
+|---|---|---:|---:|---:|
+| **Linear** | Train | 20.98 | 0.73 | -0.00 |
+|  | **Test** | **34.15** | **0.61** | **-4.28** |
+|  | CV | 21.70 | 0.72 | 0.97 |
+| **Polynomial** | Train | 17.90 | 0.81 | -0.00 |
+|  | **Test** | **30.96** | **0.68** | **-7.04** |
+|  | CV | 18.82 | 0.79 | 0.41 |
+| **Random Forest** | Train | 16.26 | 0.84 | 0.02 |
+|  | **Test** | **30.82** | **0.68** | **-5.84** |
+|  | CV | 18.52 | 0.79 | 0.77 |
+| **XGBoost** | Train | 16.03 | 0.84 | -0.00 |
+|  | **Test** | **30.39** | **0.69** | **-7.37** |
+|  | CV | 18.22 | 0.80 | 0.52 |
+| **MLP** | Train | 17.05 | 0.82 | -0.42 |
+|  | **Test** | **30.23** | **0.69** | **-7.63** |
+|  | CV | 17.80 | 0.81 | 0.02 |
+| **GRU** | Train | 15.18 | 0.87 | -4.74 |
+|  | **Test** | **30.78** | **0.68** | **-13.71** |
+|  | CV | 16.05 | 0.85 | -4.28 |
+| **LSTM** | Train | 14.31 | 0.88 | 1.64 |
+|  | **Test** | **25.95** | **0.77** | **-5.96** |
+|  | CV | 14.86 | 0.87 | 1.71 |
+| **CNN-1D** | Train | **12.81** | **0.91** | 0.97 |
+|  | **Test** | **👉 25.78 (Best)** | **0.78** | **-7.11** |
+|  | CV | **13.25** | **0.90** | 1.12 |
+
+**Key insight:**  
+- **CNN-1D achieved the best overall results**, slightly outperforming LSTM and significantly improving over baselines (−24.5% RMSE vs linear regression).  
+- CNN combined strong **local feature extraction** (kernels capture short-term degradation signatures) with efficient training, giving the best generalization.  
+
+---
+
+## 🧠 Analysis & Model Insights
+
+- **CNN-1D (Winner):**  
+  - Excels by capturing **local temporal patterns** and composing them hierarchically via pooling.  
+  - Approximates cumulative degradation trends efficiently.  
+  - Offers best **bias–variance tradeoff**, and faster training than recurrent models.  
+
+- **LSTM:**  
+  - Very competitive, with excellent ability to model **long-term dependencies**.  
+  - Performance strongly tied to **sequence length** and **scaling strategy** (condition-specific scaling crucial).  
+
+- **GRU:**  
+  - More efficient than LSTM but slightly worse generalization on FD004.  
+  - Underperforms when operating conditions are heterogeneous.  
+
+- **MLP:**  
+  - Improves over trees, but lacks explicit temporal modeling.  
+  - Tends to **underestimate RUL** consistently (ME < 0).  
+
+- **XGBoost > Random Forest:**  
+  - Better handling of high-variance regions near failure thresholds.  
+  - Still suffers from train–test gap (overfitting to nonlinearities).  
+
+- **Linear & Polynomial Regression:**  
+  - Simple, interpretable, fast.  
+  - Polynomial features reduce bias but risk overfitting, still unable to capture sequential degradation dynamics.  
+
+**Error direction (ME):**  
+- Most models **underestimate RUL** (negative ME), aligning with safety requirements.  
+- While we did not apply the Asymmetric MSE in these experiments, such a loss would likely reinforce this tendency even further, penalizing overestimation more strongly and pushing the models toward safer predictions.
+
+---
+
+## 👥 Authors
+- Matteo Agagliate – [matteo.agagliate@studenti.polito.it](mailto:matteo.agagliate@studenti.polito.it)  
 - Mattia Mosso – [mmosso3@gatech.edu](mailto:mmosso3@gatech.edu)  
-
-
-
