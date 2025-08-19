@@ -116,7 +116,7 @@ Metrics: **RMSE ↓**, **R² ↑**, **ME** (positive = overestimation, negative 
 
 **Error direction (ME):**  
 - Most models **underestimate RUL** (negative ME), aligning with safety requirements.  
-- While we did not apply the Asymmetric MSE in these experiments, such a loss would likely reinforce this tendency even further, penalizing overestimation more strongly and pushing the models toward safer predictions.
+- We observed that employing an asymmetric loss further reinforces this tendency, penalizing overestimation more strongly and leading the models toward safer predictions.
 
 ---
 
