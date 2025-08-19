@@ -38,17 +38,14 @@ We designed a **reproducible, modular pipeline** that enables fair comparison of
 - **Baselines**: Linear Regression, Polynomial Regression.  
 - **Ensemble trees**: Random Forest, XGBoost.  
 - **Neural networks**: Multilayer Perceptron (MLP).  
-- **Recurrent models**: LSTM, GRU (with different sequence lengths τ).  
-- **Convolutional model**: 1D CNN (kernel size ∈ {2,3,5}, pooling size ∈ {2,3}, τ ∈ {20,30,50}).  
+- **Recurrent models**: LSTM, GRU. 
+- **Convolutional model**: 1D CNN.
 
 ---
 
 ## 🔍 Hyperparameter Tuning
 - **Random Search** for each family, balancing exploration vs computation.  
-- Best configurations were stored and reused.  
-- LSTM/GRU tuned on **sequence length** and **scaling**: condition-specific scaling reduced RMSE by ~18.7% vs global scaling.  
-- CNN tuning found τ ≈ 50 yielded the strongest performance.  
-- GRU converged faster (≈ 2/3 of LSTM training time) but with slightly worse accuracy.  
+- Each model family had its own dedicated search space, and the best configurations were stored to allow reproducibility.
 
 ---
 
